@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{NAME}} - {{TARGET_ROLE}}</title>
+  <style>
+    @page { size:A4; margin:0; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#fff; color:#202a2d; font-family:Arial,"Microsoft YaHei",sans-serif; font-size:10px; line-height:1.42; }
+    .resume { width:210mm; min-height:297mm; margin:0 auto; padding:14mm 17mm 11mm; }
+    .hero { text-align:center; }
+    .name { margin:0; font-family:Georgia,"Microsoft YaHei",serif; font-size:25px; line-height:1.1; letter-spacing:.03em; }
+    .headline { margin:5px 0 3px; font-size:11px; font-weight:700; }
+    .contact { color:#5b676b; font-size:9.3px; }
+    .contact span { white-space:nowrap; }
+    .rule { margin:9px 0 13px; border-bottom:1.5px solid #202a2d; }
+    .section { margin:0 0 12px; break-inside:avoid; }
+    .section.hidden { display:none; }
+    h2 { margin:0 0 5px; padding-bottom:3px; border-bottom:1px solid #9ba7aa; font-family:Georgia,"Microsoft YaHei",serif; font-size:11px; letter-spacing:.09em; }
+    h3 { margin:0; font-size:10.5px; line-height:1.35; }
+    p { margin:0; }
+    .summary { font-size:10px; line-height:1.55; }
+    .skill-group { display:inline; }
+    .skill-group h3 { display:inline; font-size:9.8px; }
+    .skill-group h3::after { content:": "; }
+    .skill-group p { display:inline; color:#3f4f54; }
+    .skill-group + .skill-group::before { content:"  |  "; color:#9ba7aa; }
+    .entry { margin:0 0 9px; break-inside:avoid; }
+    .entry-heading { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+    .entry-heading span { flex:0 0 auto; color:#5b676b; font-size:9px; }
+    .muted { color:#5b676b; font-size:9px; }
+    ul { margin:3px 0 0; padding-left:14px; }
+    li { margin:1.5px 0; }
+    .tags { margin-top:2px; color:#4f6064; font-size:8.5px; }
+    .education-item { margin-bottom:7px; }
+    .education-item > p:not(.muted) { margin-top:2px; }
+    footer { margin-top:6px; padding-top:5px; border-top:1px solid #c9d1d2; color:#879396; font-size:8px; text-align:center; }
+    @media print { .resume { margin:0; } }
+  </style>
+</head>
+<body>
+  <article class="resume">
+    <header class="hero">
+      <h1 class="name">{{NAME}}</h1>
+      <p class="headline">{{HEADLINE}}</p>
+      <div class="contact">{{CONTACT}}</div>
+    </header>
+    <div class="rule"></div>
+    <main>
+    <section class="section">
+      <h2>个人概览 · {{TARGET_ROLE}}</h2>
+      <p class="summary">{{SUMMARY}}</p>
+    </section>
+    <section class="section {{SKILLS_CLASS}}">
+      <h2>核心能力</h2>
+      {{SKILLS}}
+    </section>
+    <section class="section {{EXPERIENCE_CLASS}}">
+      <h2>工作经历</h2>
+      {{EXPERIENCE}}
+    </section>
+    <section class="section {{PROJECTS_CLASS}}">
+      <h2>项目经历</h2>
+      {{PROJECTS}}
+    </section>
+    <section class="section {{EDUCATION_CLASS}}">
+      <h2>教育经历</h2>
+      {{EDUCATION}}
+    </section>
+    </main>
+    <footer>{{FOOTER}}</footer>
+  </article>
+</body>
+</html>

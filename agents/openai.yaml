@@ -1,0 +1,7 @@
+interface:
+  display_name: "skill-resume"
+  short_description: "按城市推荐20家企业并生成三种简历风格"
+  default_prompt: "使用 $skill-resume，根据我的真实经历、目标 JD 和期望就业城市推荐20家匹配企业；按城市选择中国国内或海外招聘信息源，并生成三种同文案简历及可编辑 Word 与 PDF；先询问缺失信息但不要阻塞生成。"
+  brand_color: "#0F766E"
+policy:
+  allow_implicit_invocation: true
