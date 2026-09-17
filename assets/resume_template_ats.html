@@ -9,10 +9,16 @@
     * { box-sizing:border-box; }
     body { margin:0; background:#fff; color:#202a2d; font-family:Arial,"Microsoft YaHei",sans-serif; font-size:10px; line-height:1.42; }
     .resume { width:210mm; min-height:297mm; margin:0 auto; padding:14mm 17mm 11mm; }
-    .hero { text-align:center; }
+    .hero { display:grid; grid-template-columns:1fr 48mm; gap:10mm; align-items:start; text-align:left; min-height:35mm; }
+    .identity { min-width:0; }
+    .visuals { display:flex; align-items:flex-start; justify-content:flex-end; gap:6px; min-width:0; }
+    .portrait { width:23mm; height:30mm; object-fit:contain; border:1px solid #c9d1d2; }
+    .qr-block { display:flex; flex-direction:column; align-items:center; gap:2px; }
+    .qr-code { width:25mm; height:25mm; object-fit:contain; }
+    .qr-label { color:#5b676b; font-size:8px; white-space:nowrap; }
     .name { margin:0; font-family:Georgia,"Microsoft YaHei",serif; font-size:25px; line-height:1.1; letter-spacing:.03em; }
     .headline { margin:5px 0 3px; font-size:11px; font-weight:700; }
-    .contact { color:#5b676b; font-size:9.3px; }
+    .contact { color:#5b676b; font-size:9.3px; line-height:1.65; }
     .contact span { white-space:nowrap; }
     .rule { margin:9px 0 13px; border-bottom:1.5px solid #202a2d; }
     .section { margin:0 0 12px; break-inside:avoid; }
@@ -42,9 +48,12 @@
 <body>
   <article class="resume">
     <header class="hero">
-      <h1 class="name">{{NAME}}</h1>
-      <p class="headline">{{HEADLINE}}</p>
-      <div class="contact">{{CONTACT}}</div>
+      <div class="identity">
+        <h1 class="name">{{NAME}}</h1>
+        <p class="headline">{{HEADLINE}}</p>
+        <div class="contact">{{CONTACT}}</div>
+      </div>
+      <div class="visuals">{{VISUALS}}</div>
     </header>
     <div class="rule"></div>
     <main>

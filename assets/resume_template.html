@@ -10,10 +10,16 @@
     * { box-sizing:border-box; }
     body { margin:0; background:#f2f6f5; color:var(--ink); font-family:"Aptos","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif; font-size:10px; line-height:1.42; }
     .resume { width:210mm; min-height:297mm; margin:0 auto; padding:14mm 15mm 11mm; background:#fff; }
-    .hero { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; }
+    .hero { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; min-height:38mm; }
+    .identity { min-width:0; padding-top:2px; }
+    .visuals { display:flex; align-items:flex-start; justify-content:flex-end; gap:8px; min-width:54mm; }
+    .portrait { width:25mm; height:33mm; object-fit:contain; border:1px solid #c3d6d4; background:#f7fbfa; }
+    .qr-block { display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .qr-code { width:28mm; height:28mm; object-fit:contain; }
+    .qr-label { color:var(--muted); font-size:8px; white-space:nowrap; }
     .name { margin:0; font-size:27px; line-height:1.05; letter-spacing:.02em; color:#12333b; }
     .headline { margin:7px 0 0; color:var(--accent); font-size:12px; font-weight:700; letter-spacing:.04em; }
-    .contact { max-width:48%; padding-top:3px; text-align:right; color:var(--muted); font-size:9.5px; line-height:1.7; }
+    .contact { max-width:100%; padding-top:9px; text-align:left; color:var(--muted); font-size:9.5px; line-height:1.7; }
     .contact span { white-space:nowrap; }
     .rule { height:4px; margin:11px 0 13px; background:linear-gradient(90deg,var(--accent),#8fd0c4 72%,#fff); border-radius:2px; }
     .layout { display:grid; grid-template-columns:58mm 1fr; gap:12mm; }
@@ -45,11 +51,12 @@
 <body>
   <article class="resume">
     <header class="hero">
-      <div>
+      <div class="identity">
         <h1 class="name">{{NAME}}</h1>
         <p class="headline">{{HEADLINE}}</p>
+        <div class="contact">{{CONTACT}}</div>
       </div>
-      <div class="contact">{{CONTACT}}</div>
+      <div class="visuals">{{VISUALS}}</div>
     </header>
     <div class="rule"></div>
     <div class="layout">
@@ -86,4 +93,3 @@
   </article>
 </body>
 </html>
-

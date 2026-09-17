@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import html
 import json
+import mimetypes
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +27,60 @@ def text_list(values: Any, separator: str = " · ") -> str:
     if not isinstance(values, list):
         return ""
     return separator.join(esc(item) for item in values if str(item).strip())
+
+
+def image_spec(data: dict[str, Any], aliases: tuple[str, ...]) -> Any:
+    images = data.get("images", {})
+    if isinstance(images, dict):
+        for alias in aliases:
+            if images.get(alias):
+                return images[alias]
+    for alias in aliases:
+        if data.get(alias):
+            return data[alias]
+    return None
+
+
+def image_value(spec: Any, *keys: str) -> str:
+    if isinstance(spec, dict):
+        for key in keys:
+            value = spec.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return ""
+    return str(spec or "").strip()
+
+
+def image_src(spec: Any, label: str) -> str:
+    source = image_value(spec, "data_uri", "src", "path", "data")
+    if not source:
+        return ""
+    if source.startswith(("data:image/", "https://", "http://")):
+        return source
+    path = Path(source).expanduser()
+    if not path.is_file():
+        raise FileNotFoundError(f"{label} image not found: {path}")
+    mime = mimetypes.guess_type(path.name)[0] or ""
+    if not mime.startswith("image/"):
+        raise ValueError(f"{label} image format is not supported: {path.suffix}")
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
+
+
+def render_visuals(data: dict[str, Any]) -> str:
+    avatar = image_spec(data, ("avatar", "photo"))
+    qr_code = image_spec(data, ("qr_code", "wechat_qr", "qr", "qrcode"))
+    blocks: list[str] = []
+    if avatar:
+        src = image_src(avatar, "avatar")
+        alt = esc(image_value(avatar, "alt") or "候选人头像")
+        blocks.append(f'<img class="portrait" src="{esc(src)}" alt="{alt}">')
+    if qr_code:
+        src = image_src(qr_code, "qr_code")
+        alt = esc(image_value(qr_code, "alt") or "二维码")
+        label = esc(image_value(qr_code, "label") or "微信联系")
+        blocks.append(f'<div class="qr-block"><img class="qr-code" src="{esc(src)}" alt="{alt}"><span class="qr-label">{label}</span></div>')
+    return "".join(blocks)
 
 
 def render_skills(groups: Any) -> str:
@@ -120,10 +176,12 @@ def render_manifest(data: dict[str, Any], template_path: Path) -> str:
     experience = render_experience(data.get("experience", []))
     projects = render_projects(data.get("projects", []))
     education = render_education(data.get("education", []))
+    visuals = render_visuals(data)
     replacements = {
         "{{NAME}}": esc(data.get("name")),
         "{{HEADLINE}}": esc(data.get("headline")),
         "{{CONTACT}}": text_list(data.get("contact", [])),
+        "{{VISUALS}}": visuals,
         "{{TARGET_ROLE}}": esc(data.get("target_role")),
         "{{SUMMARY}}": esc(data.get("summary")),
         "{{SKILLS}}": skills,

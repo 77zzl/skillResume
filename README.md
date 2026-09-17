@@ -9,6 +9,7 @@
 3. 三套同文案交付：ATS、Modern、Research 三种风格必须使用同一份编译文本，并各自输出 PDF 和可编辑 DOCX。
 4. 编辑后转换：再次上传编辑后的 DOCX 并提出“转成 PDF”时，直接以该 DOCX 为源文件转换，不从旧简历清单重写，避免覆盖用户的手工修改。
 5. 按城市推荐企业：根据简历、目标岗位和用户填写的期望就业城市，默认联网寻找并推荐 20 家不重复的匹配企业；中国大陆城市走中文招聘平台，海外城市走当地/国际招聘平台，港澳台单独标记为区域市场。
+6. 分栏与图片保留：Modern 和 Research 恢复左窄右宽的双栏排版，所有风格都建立明确的姓名、职业标题、区块标题、条目标题和正文层级；用户提供的头像和二维码会被嵌入 HTML、Word 和 PDF，不再因为重新生成而丢失。
 
 ## JD 是什么
 
@@ -22,6 +23,7 @@ JD 是 `Job Description` 的缩写，中文通常叫“职位描述”“岗位�
 | --- | --- | --- |
 | 中国国内岗位研究 | `SKILL.md` 工作流第 5 步、`references/web-research.md` | 根据岗位和市场选择国内招聘平台，提取真实 JD 中的职责、要求、关键词和筛选信号 |
 | 根据期望城市推荐企业 | `SKILL.md` 工作流第 6 步、`references/company-recommendation.md`、`references/output-contract.md` | 按城市选择国内/海外搜索路由，核验公开岗位，按简历证据匹配度去重排序，默认返回 20 家并披露来源和检索日期 |
+| 分栏排版与图片保留 | `references/layout-and-assets.md`、`assets/resume_template.html`、`scripts/build_resume_html.py`、`scripts/build_resume_docx.py` | Modern/Research 使用双栏，ATS 保留单栏安全版；读取 `images.avatar` 和 `images.qr_code`，按原比例嵌入所有最终文件 |
 | 必要信息询问但不阻塞 | `SKILL.md` 工作流第 2 步、`references/required-information.md` | 一次性询问缺失信息；即使用户不回答，也用已有事实生成草稿并记录缺口 |
 | 防止虚构经历 | `references/evidence-ledger.md`、`references/output-contract.md` | 为事实建立证据 ID，区分已证实、待确认、未知和排除内容 |
 | JD 解析与项目排序 | `references/jd-rolefit.md`、`SKILL.md` 第 4/6/7 步 | 将 JD 拆成硬要求、偏好、产出、关键词和风险，并据此排序内容 |
@@ -104,6 +106,31 @@ GPT 每次开始时先检查材料中是否包含以下信息：
 
 简单记忆：`SKILL.md` 决定流程，`references/` 决定判断，`scripts/` 保证执行，`assets/` 负责外观，`openai.yaml` 负责界面展示。
 
+## 为什么之前没有分栏，以及现在如何约束
+
+之前的 HTML 模板已经有分栏，但 Word 生成脚本只是顺序写入普通段落，因此最终以 Word 为源转换 PDF 时，分栏信息没有被带过去。现在已经把排版约束落实到生成器：
+
+- `ats`：单栏，作为 ATS 和网申安全版本；
+- `modern`：左栏放目标方向、核心能力、教育经历，右栏放个人概览、工作经历、项目经历；
+- `research`：同样使用双栏，但使用深蓝色、技术/学术风格和更强的项目层级。
+
+三种风格仍然从同一个 manifest 生成。双栏只改变布局，不改变文字和事实顺序。姓名字号最大，职业标题次之，区块标题再次之，条目标题大于日期/地点和正文；每个区块标题还有主题色、底线或色块等视觉信号。完整约束见 `references/layout-and-assets.md`。
+
+## 头像、二维码和其他图片
+
+只要用户提供了头像、证件照或二维码，Skill 默认保留，不会自动删除、替换或裁剪。推荐使用以下字段：
+
+```json
+{
+  "images": {
+    "avatar": {"path": "C:/path/avatar.jpg", "alt": "候选人头像"},
+    "qr_code": {"path": "C:/path/wechat-qr.png", "alt": "微信二维码", "label": "微信联系"}
+  }
+}
+```
+
+HTML 会把本地图片转换为 data URI，Word 会将图片写入 DOCX 的 `word/media/`，再由 Word/PDF 转换链路带入 PDF。若图片路径不可访问或格式不支持，Skill 会继续生成文字简历，同时在审计中说明图片未能嵌入；不会用随机图片或占位框冒充原图。
+
 ## 最终交付结构
 
 一次正常生成应至少得到以下六个文件：
@@ -137,7 +164,7 @@ Skill 应进入 `edited_docx_to_pdf` 模式：不再联网研究、不再根据�
 | GPT 配置区域 | 放入内容 |
 | --- | --- |
 | Instructions / 指令 / 说明 | `SKILL.md` 的行为规则，或直接粘贴其中的正文 |
-| Knowledge / 知识 / 知识文件 | `references/evidence-ledger.md`、`jd-rolefit.md`、`web-research.md`、`required-information.md`、`output-contract.md` |
+| Knowledge / 知识 / 知识文件 | `references/evidence-ledger.md`、`jd-rolefit.md`、`web-research.md`、`required-information.md`、`layout-and-assets.md`、`output-contract.md` |
 | 可选参考资料 | `assets/` 下三个 HTML 模板 |
 | Capabilities / 能力 | 打开“联网搜索”；如需生成文件，打开“代码解释器与数据分析” |
 | Actions / Apps | 第一版不需要；只有接入招聘网站、ATS 或云盘时才配置 |
@@ -180,10 +207,11 @@ Skill 应进入 `edited_docx_to_pdf` 模式：不再联网研究、不再根据�
 1. 只使用有证据支持的事实；
 2. 根据 JD 调整摘要、技能、项目和经历顺序；
 3. 同一份文本生成 ATS、Modern、Research 三种排版；
-4. 推荐最适合中国大陆当前投递场景的一种；
-5. 输出岗位研究摘要、完整简历、缺失信息清单和最终审计；
-6. 必须输出 ATS、Modern、Research 三种风格；每种风格都输出可编辑 DOCX 和 PDF。
-7. 如果当前环境不支持 DOCX 转 PDF，请明确说明限制，不要伪造 PDF 或直接修改文件扩展名。
+4. 如果我提供了头像或二维码，请在三种风格中都保留，并保持原始比例；
+5. 推荐最适合中国大陆当前投递场景的一种；
+6. 输出岗位研究摘要、完整简历、缺失信息清单和最终审计；
+7. 必须输出 ATS、Modern、Research 三种风格；每种风格都输出可编辑 DOCX 和 PDF。
+8. 如果当前环境不支持 DOCX 转 PDF，请明确说明限制，不要伪造 PDF 或直接修改文件扩展名。
 ```
 
 ## 输出的基本要求

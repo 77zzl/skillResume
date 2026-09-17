@@ -25,6 +25,10 @@ The renderer accepts a JSON manifest with this minimum shape:
   ],
   "projects": [],
   "education": [],
+  "images": {
+    "avatar": {"path": "C:/path/avatar.jpg", "alt": "候选人头像"},
+    "qr_code": {"path": "C:/path/wechat-qr.png", "alt": "微信二维码", "label": "微信联系"}
+  },
   "audit": {
     "jd_id": "JD-2026-001",
     "intake": {
@@ -84,6 +88,12 @@ The renderer accepts a JSON manifest with this minimum shape:
       ],
       "limitations": []
     },
+    "assets": {
+      "requested": ["avatar", "qr_code"],
+      "embedded": ["avatar", "qr_code"],
+      "omitted": [],
+      "notes": []
+    },
     "styles_rendered": ["ats", "modern", "research"],
     "selected_style": "ats",
     "deliverables": {
@@ -119,7 +129,7 @@ Optional fields such as `location`, `tags`, `context`, and `footer` are supporte
 - Use a restrained accent color, strong typographic hierarchy, consistent spacing, and sufficient contrast.
 - Keep body text around 9.5–10.5 pt when density requires it, but never reduce readability to force a page fit.
 - Use ordinary text headings and bullet lists so ATS extraction remains meaningful.
-- Use a two-column visual hierarchy only for the `modern` preview and only when the export path preserves reading order; the `ats` style is the safe default for portal upload.
+- Use a two-column visual hierarchy for the `modern` and `research` previews, and only when the export path preserves reading order; the `ats` style is the safe default for portal upload.
 - Avoid icons that replace words, skill bars, charts, photos, multi-column tables, and decorative claims.
 
 ## Style set
@@ -147,6 +157,14 @@ If the environment has no DOCX-to-PDF converter, report the limitation and provi
 
 The Skill may research external templates for inspiration, but it should not copy proprietary assets or download a third-party template into the package without a license. External research informs design decisions; the bundled templates remain reproducible and local.
 
+## Layout and image contract
+
+- `modern` and `research` must contain a genuine narrow-left/wide-right two-column body in both HTML and DOCX. The left column contains target direction, skills, and education; the right column contains summary, experience, and projects.
+- `ats` may remain single-column, but it must retain the same compiled text and a visibly larger name/headline/section-heading hierarchy.
+- If `images.avatar`, `images.photo`, `images.qr_code`, `images.wechat_qr`, `images.qr`, or `images.qrcode` is present, every style must embed the supplied image in the header visual block. The image must not be replaced by a placeholder or silently omitted.
+- `audit.assets` must record the requested, embedded, and omitted image keys. If an image cannot be embedded, `omitted` and `notes` must explain the missing path or unsupported format while generation continues.
+- HTML image references should be self-contained data URIs for local assets. DOCX image assets must appear under `word/media/` and have corresponding relationships and content types.
+
 ## Company recommendation contract
 
 When `audit.company_recommendations.requested` is `true`:
@@ -170,8 +188,10 @@ Before delivery, confirm:
 4. Keywords appear naturally and only when supported.
 5. Contact details are consistent across variants.
 6. All three styles have editable DOCX files and corresponding PDFs; the text content is identical across styles.
-7. PDF page count and text extraction pass; there is no clipping, overlap, blank page, broken glyph, or accidental whitespace.
-8. An edited DOCX conversion, when requested, uses the edited DOCX as its source and does not overwrite its edits.
-9. The audit report records intake questions asked, missing fields, generation mode, deliverables, conversion mode, assumptions, excluded claims, and validation warnings.
+7. Modern and Research visibly retain the two-column layout, while ATS retains its intentional single-column layout and all styles show distinct heading sizes.
+8. User-supplied images are present in every requested style, have correct proportions, and are recorded in `audit.assets`.
+9. PDF page count and text extraction pass; there is no clipping, overlap, blank page, broken glyph, or accidental whitespace.
+10. An edited DOCX conversion, when requested, uses the edited DOCX as its source and does not overwrite its edits.
+11. The audit report records intake questions asked, missing fields, generation mode, deliverables, conversion mode, assets, assumptions, excluded claims, and validation warnings.
 
 Missing information is not a reason to stop generation. Omit unsupported resume sections or weaken wording, and put the completion checklist in the audit rather than inserting fake placeholders into the resume.

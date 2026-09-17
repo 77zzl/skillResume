@@ -17,6 +17,11 @@ from xml.etree import ElementTree as ET
 
 PLACEHOLDER_RE = re.compile(r"\{\{.*?\}\}|\[\s*(?:TODO|TBD|待补|待确认|占位)\s*\]", re.I)
 SUSPICIOUS_RE = re.compile(r"(?:lorem ipsum|your name|example\.com)", re.I)
+WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+
+
+def word_tag(tag: str) -> str:
+    return f"{{{WORD_NS}}}{tag}"
 
 
 def walk_strings(value: Any):
@@ -201,6 +206,50 @@ def validate_company_recommendations(
     }
 
 
+def image_keys(manifest: dict[str, Any]) -> list[str]:
+    keys: list[str] = []
+    images = manifest.get("images", {})
+    if isinstance(images, dict):
+        for key in ("avatar", "photo", "qr_code", "wechat_qr", "qr", "qrcode"):
+            if images.get(key):
+                canonical = "avatar" if key in {"avatar", "photo"} else "qr_code"
+                if canonical not in keys:
+                    keys.append(canonical)
+    for key in ("avatar", "photo", "qr_code", "wechat_qr", "qr", "qrcode"):
+        if manifest.get(key):
+            canonical = "avatar" if key in {"avatar", "photo"} else "qr_code"
+            if canonical not in keys:
+                keys.append(canonical)
+    return keys
+
+
+def inspect_docx_layout(path: Path) -> dict[str, Any] | None:
+    try:
+        with ZipFile(path) as archive:
+            document_xml = archive.read("word/document.xml")
+            styles_xml = archive.read("word/styles.xml")
+            media = [name for name in archive.namelist() if name.startswith("word/media/")]
+        document_root = ET.fromstring(document_xml)
+        styles_root = ET.fromstring(styles_xml)
+    except (BadZipFile, KeyError, OSError, ET.ParseError):
+        return None
+    sizes: dict[str, int] = {}
+    for style_node in styles_root.findall(f".//{word_tag('style')}"):
+        style_id = style_node.get(word_tag("styleId"))
+        size_node = style_node.find(f".//{word_tag('sz')}")
+        if style_id and size_node is not None and size_node.get(word_tag("val")):
+            try:
+                sizes[style_id] = int(size_node.get(word_tag("val"), "0"))
+            except ValueError:
+                pass
+    return {
+        "tables": len(document_root.findall(f".//{word_tag('tbl')}")),
+        "drawings": len(document_root.findall(f".//{word_tag('drawing')}")),
+        "media": len(media),
+        "style_sizes": sizes,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True, type=Path)
@@ -214,6 +263,7 @@ def main() -> int:
     parser.add_argument("--max-pages", type=int, default=1)
     parser.add_argument("--require-research", action="store_true", help="require role and template web-research records")
     parser.add_argument("--require-company-recommendations", action="store_true", help="require and validate the company recommendation record")
+    parser.add_argument("--require-layout", action="store_true", help="require the modern/research two-column layout, heading hierarchy, and supplied image embedding")
     parser.add_argument("--require-all-formats", action="store_true", help="require all three HTML, editable DOCX, and PDF outputs")
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
@@ -273,6 +323,12 @@ def main() -> int:
         warnings,
         required=args.require_company_recommendations,
     )
+    expected_images = image_keys(manifest)
+    assets_audit = audit.get("assets", {}) if isinstance(audit.get("assets", {}), dict) else {}
+    if args.require_layout and expected_images:
+        embedded = assets_audit.get("embedded", [])
+        if not isinstance(embedded, list) or not set(expected_images).issubset({str(item) for item in embedded}):
+            errors.append("audit.assets must record every supplied image as embedded")
 
     if args.styles_dir:
         expected_styles = ("ats", "modern", "research")
@@ -295,6 +351,20 @@ def main() -> int:
                     errors.append(f"style output is missing compiled text '{anchor}': {style}")
         if sorted(str(style) for style in rendered_styles) != sorted(expected_styles):
             warnings.append("audit styles_rendered does not list all three built-in styles")
+        if args.require_layout:
+            for style in ("modern", "research"):
+                path = args.styles_dir / f"resume-{style}.html"
+                if path.is_file():
+                    content = path.read_text(encoding="utf-8", errors="replace")
+                    if "grid-template-columns:58mm 1fr" not in content:
+                        errors.append(f"HTML style is missing the required two-column grid: {style}")
+            if expected_images:
+                for style in expected_styles:
+                    path = args.styles_dir / f"resume-{style}.html"
+                    if path.is_file():
+                        html_content = path.read_text(encoding="utf-8", errors="replace")
+                        if html_content.count("<img ") < len(expected_images):
+                            errors.append(f"HTML style is missing supplied images: {style}")
 
     docx_result = None
     if args.docx:
@@ -303,14 +373,34 @@ def main() -> int:
     docx_styles: dict[str, str] = {}
     if args.docx_dir:
         expected_styles = ("ats", "modern", "research")
+        docx_layouts: dict[str, dict[str, Any]] = {}
         for style in expected_styles:
             path = args.docx_dir / f"resume-{style}.docx"
             validate_docx(path, manifest, errors, style)
             content = docx_text(path) if path.is_file() else None
             if content is not None:
                 docx_styles[style] = normalize_text(content)
+            if args.require_layout and path.is_file():
+                layout = inspect_docx_layout(path)
+                if layout is None:
+                    errors.append(f"DOCX layout inspection failed: {style}")
+                else:
+                    docx_layouts[style] = layout
         if len(docx_styles) == len(expected_styles) and len(set(docx_styles.values())) != 1:
             errors.append("DOCX style outputs do not contain identical text")
+        if args.require_layout:
+            for style in ("modern", "research"):
+                layout = docx_layouts.get(style)
+                if layout and layout["tables"] < 2:
+                    errors.append(f"DOCX style is missing the required two-column body table: {style}")
+            for style in expected_styles:
+                layout = docx_layouts.get(style)
+                if layout:
+                    sizes = layout["style_sizes"]
+                    if not (sizes.get("Title", 0) > sizes.get("Subtitle", 0) > sizes.get("EntryHeading", 0) >= sizes.get("Normal", 0)):
+                        errors.append(f"DOCX style has weak title hierarchy: {style}")
+                    if layout["media"] < len(expected_images):
+                        errors.append(f"DOCX style is missing supplied images: {style}")
 
     if args.pdf_dir:
         expected_styles = ("ats", "modern", "research")
